@@ -18,6 +18,14 @@ extension View {
         }
     }
 
+    /// Borderless icon menu matching `ChromeButtonStyle`.
+    func chromeMenu() -> some View {
+        menuStyle(.button)
+            .buttonStyle(ChromeButtonStyle())
+            .menuIndicator(.hidden)
+            .fixedSize()
+    }
+
     @ViewBuilder
     func glassButton() -> some View {
         if #available(macOS 26.0, *) {

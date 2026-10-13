@@ -14,14 +14,8 @@ struct MediaItem: Identifiable, Hashable {
 
     init(url: URL) { self.url = url }
 
-    var displayName: String {
-        if url.isFileURL { return url.deletingPathExtension().lastPathComponent }
-        return url.lastPathComponent.isEmpty ? (url.host() ?? url.absoluteString) : url.lastPathComponent
-    }
-
-    var detail: String {
-        url.isFileURL ? url.deletingLastPathComponent().lastPathComponent : (url.host() ?? "Stream")
-    }
+    var displayName: String { url.mediaDisplayName }
+    var detail: String { url.mediaDetail }
 }
 
 /// Remembers where playback stopped so reopening a long file picks up where you left off,
@@ -59,11 +53,13 @@ final class ResumePoints {
 
     /// Most recently watched unfinished local files that still exist.
     var continueWatching: [(url: URL, entry: Entry)] {
-        entries
-            .filter { !$0.key.isFileURL || FileManager.default.fileExists(atPath: $0.key.path) }
+        // Sort first and check existence lazily, so only as many files are stat'ed as it takes to fill the shelf.
+        Array(entries
             .sorted { $0.value.updated > $1.value.updated }
+            .lazy
+            .filter { !$0.key.isFileURL || FileManager.default.fileExists(atPath: $0.key.path) }
             .prefix(10)
-            .map { ($0.key, $0.value) }
+            .map { ($0.key, $0.value) })
     }
 
     func save(elapsed: TimeInterval, duration: TimeInterval, for url: URL) {

@@ -7,7 +7,7 @@ import VLCKit
 /// Shows libVLC's dialogs natively: logins for SMB shares and protected streams, questions such as
 /// Chromecast transcoding warnings, and errors. Without this, libVLC silently fails those requests.
 final class DialogHandler: NSObject, VLCCustomDialogRendererProtocol, @unchecked Sendable {
-    nonisolated(unsafe) private static var provider: VLCDialogProvider?
+    @MainActor private static var provider: VLCDialogProvider?
     private static let handler = DialogHandler()
 
     @MainActor
@@ -16,10 +16,10 @@ final class DialogHandler: NSObject, VLCCustomDialogRendererProtocol, @unchecked
         provider?.customRenderer = handler
     }
 
-    // libVLC may call these from any thread.
+    // libVLC may call these from any thread; each hops to the main actor to show UI.
 
     func showError(withTitle error: String, message: String) {
-        DispatchQueue.main.async {
+        Task { @MainActor in
             let alert = NSAlert()
             alert.alertStyle = .warning
             alert.messageText = error
@@ -31,7 +31,7 @@ final class DialogHandler: NSObject, VLCCustomDialogRendererProtocol, @unchecked
     func showLogin(withTitle title: String, message: String, defaultUsername username: String?,
                    askingForStorage: Bool, withReference reference: NSValue) {
         nonisolated(unsafe) let reference = reference
-        DispatchQueue.main.async {
+        Task { @MainActor in
             let alert = NSAlert()
             alert.messageText = title
             alert.informativeText = message
@@ -67,7 +67,7 @@ final class DialogHandler: NSObject, VLCCustomDialogRendererProtocol, @unchecked
                       cancel cancelString: String?, action1String: String?, action2String: String?,
                       withReference reference: NSValue) {
         nonisolated(unsafe) let reference = reference
-        DispatchQueue.main.async {
+        Task { @MainActor in
             let alert = NSAlert()
             alert.alertStyle = questionType == .critical ? .critical : questionType == .warning ? .warning : .informational
             alert.messageText = title

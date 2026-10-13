@@ -40,6 +40,7 @@ struct NetworkPanel: View {
                 }
                 .buttonStyle(ChromeButtonStyle(size: 28))
                 .help("Back")
+                .accessibilityLabel("Back")
             }
             VStack(alignment: .leading, spacing: 1) {
                 Text(browser.path.last?.name ?? "Network")
@@ -57,6 +58,7 @@ struct NetworkPanel: View {
             }
             .buttonStyle(ChromeButtonStyle(size: 28))
             .help("Close")
+            .accessibilityLabel("Close Network Browser")
         }
         .padding(.horizontal, 12)
         .padding(.top, 12)

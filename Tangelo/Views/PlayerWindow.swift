@@ -26,7 +26,7 @@ struct PlayerWindow: View {
                         .transition(.opacity)
                 }
                 clickLayer
-                if !player.isRemote, player.status == .opening || (player.status == .buffering && player.elapsed == 0) {
+                if !player.isRemote, player.status == .opening || (player.status == .buffering && !player.hasStartedPlayback) {
                     ProgressView().controlSize(chrome.isMini ? .regular : .large).tint(.white)
                 }
                 if player.status == .failed && !chrome.isMini {
@@ -69,8 +69,8 @@ struct PlayerWindow: View {
             }
         }
         .overlay(alignment: .bottomTrailing) {
-            if !chrome.isMini, let countdown = player.upNextCountdown, let next = player.queue[safe: (player.currentIndex ?? 0) + 1] {
-                UpNextCard(next: next, countdown: countdown)
+            if !chrome.isMini, player.showsUpNext, let next = player.queue[safe: (player.currentIndex ?? 0) + 1] {
+                UpNextCard(next: next)
                     .padding(.trailing, 20)
                     .padding(.bottom, chrome.controlsVisible ? 128 : 24)
                     .transition(.move(edge: .trailing).combined(with: .opacity))
@@ -109,7 +109,7 @@ struct PlayerWindow: View {
             }
         }
         .animation(.easeOut(duration: 0.2), value: player.hud)
-        .animation(.snappy, value: player.upNextCountdown != nil)
+        .animation(.snappy, value: player.showsUpNext)
         .animation(.easeInOut(duration: 0.3), value: chrome.controlsVisible)
         .animation(.easeOut(duration: 0.25), value: player.hasMedia)
         .ignoresSafeArea()

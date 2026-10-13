@@ -191,6 +191,9 @@ mini player. These exist for scripted screenshots.
 
 - **VLCKit stays inside `Engine/`.** Views talk to `Player`, never to VLCKit, so a Windows or Linux shell only needs
   a new engine against libVLC's C API.
+- **Only time displays read `Player.elapsed`.** It changes several times a second. `TimelineRow`, `MiniProgressBar` and
+  `UpNextCard` read it; everything else reads stored, slower-changing state (`showsUpNext`, `hasStartedPlayback`), so
+  playback doesn't re-render the window or the control bar's buttons and menus.
 - **libVLC callbacks never mutate the queue directly.** Changing media inside a libVLC event can deadlock; hop to
   the next main-actor turn first (see `reachedEnd()` in `Player`).
 - **End of file arrives as a pause.** VLCKit 3 pauses on the last frame instead of reporting `.ended`, so `Player`

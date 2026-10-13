@@ -21,12 +21,13 @@ final class Player: NSObject {
         let name: String
     }
 
-    private(set) var status: Status = .idle
-    private(set) var queue: [MediaItem] = []
-    private(set) var currentIndex: Int?
-    private(set) var elapsed: TimeInterval = 0
-    private(set) var duration: TimeInterval = 0
-    private(set) var videoSize: CGSize = .zero
+    private(set) var status: Status = .idle { didSet { refreshUpNext() } }
+    private(set) var queue: [MediaItem] = [] { didSet { refreshUpNext() } }
+    private(set) var currentIndex: Int? { didSet { refreshUpNext() } }
+    /// Changes several times a second during playback. Only views that display time should read it.
+    private(set) var elapsed: TimeInterval = 0 { didSet { refreshUpNext() } }
+    private(set) var duration: TimeInterval = 0 { didSet { refreshUpNext() } }
+    private(set) var videoSize: CGSize = .zero { didSet { refreshUpNext() } }
     private(set) var artwork: NSImage?
     private(set) var metadataTitle: String?
     /// Raw tags for Now Playing; `metadataTitle` is the combined display string.
@@ -42,7 +43,14 @@ final class Player: NSObject {
     /// Bumped on every jump in position, so observers (Now Playing) can resync elapsed time.
     private(set) var seekGeneration = 0
     /// When false, playback stops at the end of the current item instead of moving on.
-    private(set) var autoAdvance = true
+    private(set) var autoAdvance = true { didSet { refreshUpNext() } }
+    /// Seconds left before rolling into the next queued item, while the Up Next card is up.
+    /// Stored rather than computed so only the card follows the countdown; the window reads `showsUpNext`.
+    private(set) var upNextCountdown: TimeInterval?
+    private(set) var showsUpNext = false
+    /// True once the current item reports its first time update. Drives the loading spinner without
+    /// subscribing the window to `elapsed`.
+    private(set) var hasStartedPlayback = false
     /// Name of the Chromecast libVLC is rendering to, if any.
     private(set) var castingTo: String?
 
@@ -220,14 +228,17 @@ final class Player: NSObject {
     func play() { if hasMedia, !isPlaying { togglePlayPause() } }
     func pause() { if isPlaying { togglePlayPause() } }
 
-    /// Remaining seconds before playback rolls into the next queued item, when that's about to happen.
-    var upNextCountdown: TimeInterval? {
-        guard autoAdvance, hasNext, hasVideo, duration >= 300, status == .playing || status == .paused else { return nil }
-        let remaining = duration - elapsed
-        return remaining <= 20 ? max(remaining, 0) : nil
-    }
-
     func cancelUpNext() { autoAdvance = false }
+
+    private func refreshUpNext() {
+        let countdown: TimeInterval? = {
+            guard autoAdvance, hasNext, hasVideo, duration >= 300, status == .playing || status == .paused else { return nil }
+            let remaining = duration - elapsed
+            return remaining <= 20 ? max(remaining, 0) : nil
+        }()
+        if countdown != upNextCountdown { upNextCountdown = countdown }
+        if (countdown != nil) != showsUpNext { showsUpNext = countdown != nil }
+    }
 
     func skip(by seconds: Double) {
         guard hasMedia else { return }
@@ -235,12 +246,25 @@ final class Player: NSObject {
         showHUD(seconds > 0 ? "goforward" : "gobackward", "\(seconds > 0 ? "+" : "−")\(Int(abs(seconds)))s")
     }
 
+    static let playbackRates: [Float] = [0.5, 0.75, 1, 1.25, 1.5, 2]
+
+    /// Writable so menus can bind to it; setting goes through `setRate`.
+    var playbackRate: Float {
+        get { rate }
+        set { setRate(newValue) }
+    }
+
     func setRate(_ newRate: Float) {
         let clamped = min(max(newRate, 0.25), 4)
         mediaPlayer.rate = clamped
         external?.setRate(clamped)
         rate = clamped
-        showHUD("speedometer", clamped == 1 ? "Normal speed" : String(format: "%.2g×", clamped))
+        showHUD("speedometer", clamped == 1 ? "Normal speed" : Self.rateLabel(clamped))
+    }
+
+    /// "1.25×", "0.5×", "2×".
+    static func rateLabel(_ rate: Float) -> String {
+        "\(rate.formatted(.number.precision(.fractionLength(0...2))))×"
     }
 
     func nudgeVolume(by delta: Double) {
@@ -262,6 +286,17 @@ final class Player: NSObject {
     }
 
     // MARK: - Tracks
+
+    /// Writable so pickers can bind to them; setting goes through `selectAudioTrack` / `selectSubtitleTrack`.
+    var audioTrack: Int32 {
+        get { selectedAudioTrack }
+        set { selectAudioTrack(newValue) }
+    }
+
+    var subtitleTrack: Int32 {
+        get { selectedSubtitleTrack }
+        set { selectSubtitleTrack(newValue) }
+    }
 
     func selectAudioTrack(_ id: Int32) {
         mediaPlayer.currentAudioTrackIndex = id
@@ -325,6 +360,7 @@ final class Player: NSObject {
     /// State reported by AirPlay while it's driving playback.
     func externalUpdate(elapsed: TimeInterval, duration: TimeInterval, playing: Bool) {
         self.elapsed = elapsed
+        if elapsed > 0, !hasStartedPlayback { hasStartedPlayback = true }
         if duration > 0 { self.duration = duration }
         let newStatus: Status = playing ? .playing : .paused
         if status != newStatus { status = newStatus }
@@ -357,6 +393,7 @@ final class Player: NSObject {
 
     private func resetItemState() {
         elapsed = 0
+        hasStartedPlayback = false
         duration = 0
         videoSize = .zero
         artwork = nil
@@ -453,6 +490,7 @@ extension Player: @preconcurrency VLCMediaPlayerDelegate {
 
     func mediaPlayerTimeChanged(_ aNotification: Notification) {
         elapsed = Double(mediaPlayer.time.intValue) / 1000
+        if elapsed > 0, !hasStartedPlayback { hasStartedPlayback = true }
         if duration == 0 { refreshMetadata() }
 
         let size = mediaPlayer.videoSize
@@ -489,21 +527,15 @@ extension Player: @preconcurrency VLCMediaPlayerDelegate {
         }
     }
 
+    /// "5:04" or "1:02:09".
     static func format(_ seconds: TimeInterval) -> String {
-        guard seconds.isFinite else { return "0:00" }
-        let total = Int(seconds.rounded(.down))
-        let h = total / 3600, m = (total % 3600) / 60, s = total % 60
-        return h > 0 ? String(format: "%d:%02d:%02d", h, m, s) : String(format: "%d:%02d", m, s)
+        guard seconds.isFinite, seconds > 0 else { return "0:00" }
+        let duration = Duration.seconds(Int(seconds.rounded(.down)))
+        return duration.formatted(.time(pattern: seconds >= 3600 ? .hourMinuteSecond : .minuteSecond))
     }
 }
 
 extension Player: @preconcurrency VLCMediaDelegate {
     func mediaMetaDataDidChange(_ aMedia: VLCMedia) { refreshMetadata() }
     func mediaDidFinishParsing(_ aMedia: VLCMedia) { refreshMetadata() }
-}
-
-struct HUDMessage: Equatable {
-    let id = UUID()
-    let symbol: String
-    let text: String
 }

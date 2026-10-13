@@ -4,12 +4,12 @@
 import SwiftUI
 
 struct PlayerCommands: Commands {
-    let player: Player
+    @Bindable var player: Player
     let chrome: ChromeController
 
     var body: some Commands {
         CommandGroup(replacing: .newItem) {
-            Button("Open…") { OpenPanel.chooseMedia() }
+            Button("Open…", action: OpenPanel.chooseMedia)
                 .keyboardShortcut("o")
             Button("Open URL…") { chrome.showingOpenURL = true }
                 .keyboardShortcut("l")
@@ -24,12 +24,12 @@ struct PlayerCommands: Commands {
                     .disabled(RecentItems.shared.urls.isEmpty)
             }
             Divider()
-            Button("Add Subtitle File…") { OpenPanel.chooseSubtitles() }
+            Button("Add Subtitle File…", action: OpenPanel.chooseSubtitles)
                 .disabled(!player.hasMedia)
         }
 
         CommandMenu("Playback") {
-            Button(player.isPlaying ? "Pause" : "Play") { player.togglePlayPause() }
+            Button(player.isPlaying ? "Pause" : "Play", action: player.togglePlayPause)
                 .keyboardShortcut("p", modifiers: [.command, .option])
                 .disabled(!player.hasMedia)
             Divider()
@@ -38,17 +38,16 @@ struct PlayerCommands: Commands {
             Button("Jump Back 10s") { player.skip(by: -10) }
                 .keyboardShortcut(.leftArrow)
             Divider()
-            Button("Next") { player.next() }
+            Button("Next", action: player.next)
                 .keyboardShortcut(.rightArrow, modifiers: [.command, .shift])
                 .disabled(!player.hasNext)
-            Button("Previous") { player.previous() }
+            Button("Previous", action: player.previous)
                 .keyboardShortcut(.leftArrow, modifiers: [.command, .shift])
                 .disabled(!player.hasMedia)
             Divider()
-            Menu("Speed") {
-                ForEach([0.5, 0.75, 1, 1.25, 1.5, 2] as [Float], id: \.self) { rate in
-                    Toggle(rate == 1 ? "Normal" : String(format: "%.2g×", rate),
-                           isOn: Binding(get: { player.rate == rate }, set: { _ in player.setRate(rate) }))
+            Picker("Speed", selection: $player.playbackRate) {
+                ForEach(Player.playbackRates, id: \.self) { rate in
+                    Text(rate == 1 ? "Normal" : Player.rateLabel(rate)).tag(rate)
                 }
             }
             Button("Faster") { player.setRate(player.rate + 0.25) }
@@ -56,7 +55,7 @@ struct PlayerCommands: Commands {
             Button("Slower") { player.setRate(player.rate - 0.25) }
                 .keyboardShortcut("[")
             Divider()
-            Button("Stop") { player.stop() }
+            Button("Stop", action: player.stop)
                 .keyboardShortcut(".")
                 .disabled(!player.hasMedia)
         }
@@ -66,22 +65,22 @@ struct PlayerCommands: Commands {
                 .keyboardShortcut(.upArrow)
             Button("Volume Down") { player.nudgeVolume(by: -0.05) }
                 .keyboardShortcut(.downArrow)
-            Button(player.isMuted ? "Unmute" : "Mute") { player.toggleMute() }
+            Button(player.isMuted ? "Unmute" : "Mute", action: player.toggleMute)
                 .keyboardShortcut(.downArrow, modifiers: [.command, .option])
             if !player.audioTracks.isEmpty {
                 Divider()
-                Picker("Audio Track", selection: Binding(get: { player.selectedAudioTrack }, set: player.selectAudioTrack)) {
+                Picker("Audio Track", selection: $player.audioTrack) {
                     ForEach(player.audioTracks) { Text($0.name).tag($0.id) }
                 }
             }
         }
 
         CommandMenu("Subtitles") {
-            Button("Add Subtitle File…") { OpenPanel.chooseSubtitles() }
+            Button("Add Subtitle File…", action: OpenPanel.chooseSubtitles)
                 .disabled(!player.hasMedia)
             if !player.subtitleTracks.isEmpty {
                 Divider()
-                Picker("Subtitle Track", selection: Binding(get: { player.selectedSubtitleTrack }, set: player.selectSubtitleTrack)) {
+                Picker("Subtitle Track", selection: $player.subtitleTrack) {
                     ForEach(player.subtitleTracks) { Text($0.name).tag($0.id) }
                 }
             }

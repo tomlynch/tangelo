@@ -22,11 +22,13 @@ struct PlaylistPanel: View {
                 }
                 .buttonStyle(ChromeButtonStyle(size: 28))
                 .help("Add to playlist")
+                .accessibilityLabel("Add to Playlist")
                 Button { withAnimation(.snappy) { chrome.showingPlaylist = false } } label: {
                     Image(systemName: "xmark").font(.system(size: 11, weight: .bold))
                 }
                 .buttonStyle(ChromeButtonStyle(size: 28))
                 .help("Close")
+                .accessibilityLabel("Close Playlist")
             }
             .padding(.horizontal, 14)
             .padding(.top, 12)

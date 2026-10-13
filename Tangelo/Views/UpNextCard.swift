@@ -7,8 +7,9 @@ import SwiftUI
 struct UpNextCard: View {
     @Environment(Player.self) private var player
     let next: MediaItem
-    let countdown: TimeInterval
     @State private var thumbnail: NSImage?
+
+    private var countdown: TimeInterval { player.upNextCountdown ?? 0 }
 
     private static let window: TimeInterval = 20
 
@@ -34,7 +35,7 @@ struct UpNextCard: View {
                     .font(.system(size: 13, weight: .semibold))
                     .lineLimit(2)
                 HStack(spacing: 8) {
-                    Button { player.next() } label: {
+                    Button(action: player.next) {
                         HStack(spacing: 6) {
                             ZStack {
                                 Circle().stroke(.white.opacity(0.25), lineWidth: 2)
@@ -50,7 +51,7 @@ struct UpNextCard: View {
                         }
                     }
                     .prominentGlassButton()
-                    Button("Cancel") { player.cancelUpNext() }
+                    Button("Cancel", action: player.cancelUpNext)
                         .glassButton()
                 }
                 .controlSize(.small)

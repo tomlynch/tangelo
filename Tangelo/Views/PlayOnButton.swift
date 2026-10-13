@@ -22,7 +22,7 @@ struct PlayOnButton: View {
             casting.startDiscovery()
             showing.toggle()
         } label: {
-            Image(systemName: symbol)
+            Label("Play on Another Device", systemImage: symbol)
                 .font(.system(size: 14, weight: .medium))
                 .foregroundStyle(player.isRemote ? AnyShapeStyle(.tint) : AnyShapeStyle(.white))
         }
