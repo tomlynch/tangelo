@@ -496,15 +496,19 @@ extension Player: @preconcurrency VLCMediaPlayerDelegate {
         let size = mediaPlayer.videoSize
         if size != videoSize { videoSize = size }
 
+        // Record the jump in `elapsed` straight away. Otherwise the resume-point save below sees the pre-seek
+        // position (about zero), treats it as "not worth resuming" and deletes the saved position.
         if let seek = pendingSeek, duration > 0 {
             pendingSeek = nil
             mediaPlayer.time = VLCTime(int: Int32(seek * 1000))
+            elapsed = seek
             seekGeneration += 1
         }
 
         if let resume = pendingResume, duration > 0 {
             pendingResume = nil
             mediaPlayer.time = VLCTime(int: Int32(resume * 1000))
+            elapsed = resume
             seekGeneration += 1
             showHUD("clock.arrow.circlepath", "Resumed at \(Self.format(resume))")
         }
