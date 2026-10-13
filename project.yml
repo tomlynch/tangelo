@@ -9,7 +9,9 @@ settings:
     SWIFT_VERSION: "6.0"
     MARKETING_VERSION: "0.1.0"
     CURRENT_PROJECT_VERSION: "1"
-    ENABLE_HARDENED_RUNTIME: YES
+    # Local builds are ad-hoc signed and skip the hardened runtime so anyone can build and run any configuration.
+    # scripts/release.sh turns on the hardened runtime and signs with a Developer ID for distribution.
+    ENABLE_HARDENED_RUNTIME: NO
     CODE_SIGN_IDENTITY: "-"
     DEAD_CODE_STRIPPING: YES
 targets:
