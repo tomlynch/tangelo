@@ -45,12 +45,14 @@ struct ControlBar: View {
             }
             .font(.system(size: 11.5, weight: .medium).monospacedDigit())
             .foregroundStyle(.white.opacity(0.8))
+            .zIndex(1) // the seek preview pops up over the buttons row
         }
         .padding(.horizontal, 16)
         .padding(.top, 8)
         .padding(.bottom, 10)
         .frame(maxWidth: 720)
-        .glassPanel(in: RoundedRectangle(cornerRadius: 24, style: .continuous))
+        // Glass as a background layer, so the seek preview can rise above the bar without being drawn inside it.
+        .background { Color.clear.glassPanel(in: RoundedRectangle(cornerRadius: 24, style: .continuous)) }
     }
 
     private var transportCluster: some View {

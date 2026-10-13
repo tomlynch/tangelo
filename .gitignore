@@ -8,3 +8,7 @@ xcuserdata/
 /Vendor/VLCKit.xcframework/
 /Vendor/VLCKit-COPYING.txt
 /Vendor/.vlckit-version
+
+# Demo footage (large; see footage/README.md for sources)
+/footage/*
+!/footage/README.md

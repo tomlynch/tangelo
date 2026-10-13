@@ -16,6 +16,10 @@ media player. Everything you see and touch is new.
 **Status:** early development. There are no signed downloads yet, so for now you [build it from source](#build-from-source).
 Requires macOS 15 or later on Apple silicon or Intel.
 
+<p align="center">
+  <img src="docs/screenshots/playback.png" width="860" alt="Tangelo playing Sintel, with the floating glass control bar over the video">
+</p>
+
 ---
 
 ## What you get
@@ -38,11 +42,19 @@ All of this comes from libVLC. If VLC 3 can play it, Tangelo almost certainly ca
 - **Seek previews:** hover the seek bar to see the frame at that point.
 - Trackpad gestures: swipe to scrub, swipe up or down for volume, pinch for full screen.
 
+<p align="center">
+  <img src="docs/screenshots/seek-preview.png" width="640" alt="Hovering the seek bar shows a preview frame and its timestamp">
+</p>
+
 ### Picks up where you left off
 
 - **Continue Watching** on the welcome screen, with thumbnails and time left.
 - Long videos resume where you stopped.
 - **Series aware:** open `Show S01E03.mkv` and the rest of the season is queued, with an Up Next countdown at the end.
+
+<p align="center">
+  <img src="docs/screenshots/continue-watching.png" width="640" alt="The welcome screen with a Continue Watching shelf of three films, each with a thumbnail and time left">
+</p>
 
 ### Your TV and your network
 
@@ -151,6 +163,8 @@ translucent materials.
 - **libVLC and VLCKit** are VideoLAN's, licensed under the LGPL 2.1 or later. Tangelo ships them as a separate,
   unmodified framework inside the app, which you're free to replace with your own build. The bundled build contains
   no GPL-only components; details and source links are in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+- **Screenshots** show *Sintel*, *Big Buck Bunny* and *Elephants Dream*, © Blender Foundation
+  ([blender.org](https://www.blender.org)), licensed [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/).
 - **Trademarks:** "VLC", "VideoLAN" and the VLC cone are VideoLAN's trademarks. Tangelo uses the name only to
   describe its engine and doesn't use the logo. Tangelo's name and icon are its own.
 
@@ -167,6 +181,8 @@ translucent materials.
 | `Tangelo/Views/` | SwiftUI views: control bar, welcome screen, playlist and network panels, Play On menu, now-playing, Up Next |
 | `scripts/` | `fetch-vlckit.sh` (pinned VLCKit download) and `make-icon.sh` (icon export) |
 | `design/icon/` | Icon source: `generate.py` writes `Tangelo.svg`; tweak it there, then run `scripts/make-icon.sh` |
+| `docs/screenshots/` | README screenshots, taken from a separate build with its own bundle ID so personal settings never appear |
+| `footage/` | Open movies for screenshots and testing (git-ignored; sources in `footage/README.md`) |
 
 `Tangelo --open <path>` opens a file at launch, `--network` opens the network browser and `--mini` starts in the
 mini player. These exist for scripted screenshots.
@@ -192,7 +208,9 @@ mini player. These exist for scripted screenshots.
 
 ### Releasing (LGPL checklist)
 
-1. Archive, sign with a Developer ID, notarize, ship as a DMG.
+1. Set your Development Team, then archive, sign with a Developer ID, notarize, and ship as a DMG. Release builds use
+   the hardened runtime, which only loads VLCKit when the app and framework share a Team ID; an unsigned (ad-hoc)
+   Release build won't launch. For a local unsigned Release build, pass `ENABLE_HARDENED_RUNTIME=NO`.
 2. Attach the matching VLCKit source archive (VLCKit tag `3.7.3` from code.videolan.org) to the GitHub release.
    LGPL-2.1 section 6 requires the library's source to be offered alongside the binary.
 3. Keep `VLCKit-COPYING.txt` and `THIRD_PARTY_NOTICES.md` in the app bundle (the build does this).
