@@ -1,0 +1,10 @@
+.DS_Store
+/build/
+DerivedData/
+*.xcodeproj/
+xcuserdata/
+
+# Fetched by scripts/fetch-vlckit.sh (LGPL binary, not committed)
+/Vendor/VLCKit.xcframework/
+/Vendor/VLCKit-COPYING.txt
+/Vendor/.vlckit-version
